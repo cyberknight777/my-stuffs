@@ -1,8 +1,8 @@
 #!/bin/bash
 #Kali NetHunter Kernel Config Checker
 #from config.gz(result may not reliable) or from kernel defconfig
-
 #Heavily Based On: https://github.com/moby/moby/blob/master/contrib/check-config.sh
+#Maintained by: 0x300T(//BootLOop)
 
 set -e
 
