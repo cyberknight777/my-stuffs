@@ -230,21 +230,14 @@ index 6b927fd..93e6d40 100644
         if (!vdev_temp)
             goto drop_pkt;
  
-diff --git a/CORE/SERVICES/COMMON/_ieee80211_common.h b/CORE/SERVICES/COMMON/_ieee80211_common.h
-index f4a9294..a1df397 100644
---- a/CORE/SERVICES/COMMON/_ieee80211_common.h
-+++ b/CORE/SERVICES/COMMON/_ieee80211_common.h
-@@ -1,5 +1,5 @@
- /*
-- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
-+ * Copyright (c) 2013-2014, 2016 The Linux Foundation. All rights reserved.
-  *
-  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
-  *
-@@ -548,4 +548,21 @@ struct ieee80211_chanutil_info {
-     u_int8_t     beacon_intervals;
- };
- 
+diff --git a/core/cds/inc/cds_ieee80211_common.h b/core/cds/inc/cds_ieee80211_common.h
+index aa2312665b..bcf5a7507b 100644
+--- a/core/cds/inc/cds_ieee80211_common.h
++++ b/core/cds/inc/cds_ieee80211_common.h
+@@ -2048,4 +2048,21 @@ struct ieee80211_ie_wide_bw_switch {
+
+ #define IEEE80211_P2P_WILDCARD_SSID_LEN     (sizeof(IEEE80211_P2P_WILDCARD_SSID) - 1)
+
 +/**
 + * struct ieee80211_radiotap_header - radio tap header
 + * @it_version: version 0
@@ -256,13 +249,13 @@ index f4a9294..a1df397 100644
 + * and carry tx parameters in packet injection.
 + */
 +struct ieee80211_radiotap_header {
-+	u_int8_t it_version;
-+	u_int8_t it_pad;
-+	u_int16_t it_len;
-+	u_int32_t it_present;
++       u_int8_t it_version;
++       u_int8_t it_pad;
++       u_int16_t it_len;
++       u_int32_t it_present;
 +} __packed;
 +
- #endif /* _COMMON__IEEE80211_H_ */
+ #endif /* CDS_COMMON_IEEE80211_H_ */
 diff --git a/CORE/TL/inc/wlan_qct_tl.h b/CORE/TL/inc/wlan_qct_tl.h
 index 23e62f0..51cb7c1 100644
 --- a/CORE/TL/inc/wlan_qct_tl.h
