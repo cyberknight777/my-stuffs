@@ -178,11 +178,11 @@ index da494eb935..1c92d37d2f 100644
  #endif
  };
 
- #ifdef FEATURE_MONITOR_MODE_SUPPORT
- /* Monitor mode net_device_ops, doesnot Tx and most of operations. */
- static const struct net_device_ops wlan_mon_drv_ops = {
- 	.ndo_open = hdd_mon_open,
- 	.ndo_stop = hdd_stop,
++ #ifdef FEATURE_MONITOR_MODE_SUPPORT
++ /* Monitor mode net_device_ops, doesnot Tx and most of operations. */
++ static const struct net_device_ops wlan_mon_drv_ops = {
++	.ndo_open = hdd_mon_open,
++	.ndo_stop = hdd_stop,
 +#ifdef CONFIG_HL_SUPPORT
 +	.ndo_start_xmit = hdd_hard_start_xmit,
 +#endif
