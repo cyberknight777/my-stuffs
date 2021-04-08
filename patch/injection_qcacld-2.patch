@@ -1,0 +1,292 @@
+From 3d3ad7877d1b4d097b4302a4293a1cbb2478e7bf Mon Sep 17 00:00:00 2001
+From: Hong Shi <hongsh@codeaurora.org>
+Date: Tue, 15 Nov 2016 17:22:51 +0800
+Subject: qcacld-2.0: Add packet injection in monitor mode
+
+Packet injection change enables broadcast frame transmiting in
+monitor mode. Frame format is raw. Firmware will parse the radiotap
+header carried with payload and apply the parameters(rate, retries)
+in TX.
+
+CRs-fixed: 1090093
+Change-Id: I865677e293525393ff33f59c2774c19d22ecbbcd
+---
+ CORE/CLD_TXRX/TLSHIM/tl_shim.c           | 28 ++++++++++++++++++-
+ CORE/CLD_TXRX/TXRX/ol_tx.c               | 48 ++++++++++++++++++++++++++++++--
+ CORE/HDD/src/wlan_hdd_main.c             | 16 +++++++----
+ CORE/HDD/src/wlan_hdd_tx_rx.c            | 20 ++++++++-----
+ CORE/SERVICES/COMMON/_ieee80211_common.h | 19 ++++++++++++-
+ CORE/TL/inc/wlan_qct_tl.h                |  8 ++++++
+ 6 files changed, 123 insertions(+), 16 deletions(-)
+
+diff --git a/CORE/CLD_TXRX/TLSHIM/tl_shim.c b/CORE/CLD_TXRX/TLSHIM/tl_shim.c
+index 90e6c5b..268a1e5 100644
+--- a/CORE/CLD_TXRX/TLSHIM/tl_shim.c
++++ b/CORE/CLD_TXRX/TLSHIM/tl_shim.c
+@@ -1254,7 +1254,7 @@ void *tlshim_peer_validity(void *vos_ctx, uint8_t sta_id)
+ 	}
+ 
+ 	peer = ol_txrx_peer_find_by_local_id(
+-			((pVosContextType) vos_ctx)->pdev_txrx_ctx,
++			vos_get_context(VOS_MODULE_ID_TXRX,vos_ctx),
+ 			sta_id);
+ 	if (!peer) {
+ 		TLSHIM_LOGW("Invalid peer");
+@@ -1265,6 +1265,32 @@ void *tlshim_peer_validity(void *vos_ctx, uint8_t sta_id)
+ }
+ 
+ /**
++ * tlshim_selfpeer_vdev() - get the vdev of self peer
++ * @vos_ctx: vos context
++ *
++ * Return: on success return vdev, NULL when self peer is invalid/NULL
++ */
++void *tlshim_selfpeer_vdev(void *vos_ctx)
++{
++	struct ol_txrx_pdev_t *pdev = vos_get_context(VOS_MODULE_ID_TXRX,
++							   vos_ctx);
++	struct ol_txrx_peer_t *peer;
++
++	if (!pdev) {
++		TLSHIM_LOGE("Txrx pdev is NULL");
++		return NULL;
++	}
++
++	peer = pdev->self_peer;
++	if (!peer) {
++		TLSHIM_LOGW("Invalid peer");
++		return NULL;
++	} else {
++		return peer->vdev;
++	}
++}
++
++/**
+  * WLANTL_SendSTA_DataFrame() - transmit frame from upper layers
+  * @vos_ctx: pointer to vos context
+  * @vdev: vdev
+diff --git a/CORE/CLD_TXRX/TXRX/ol_tx.c b/CORE/CLD_TXRX/TXRX/ol_tx.c
+index 7088462..4b49118 100644
+--- a/CORE/CLD_TXRX/TXRX/ol_tx.c
++++ b/CORE/CLD_TXRX/TXRX/ol_tx.c
+@@ -634,6 +634,8 @@ static void merge_ocb_tx_ctrl_hdr(struct ocb_tx_ctrl_hdr_t *tx_ctrl,
+ 	}
+ }
+ 
++#define MAX_RADIOTAP_LEN 256
++
+ static inline adf_nbuf_t
+ ol_tx_hl_base(
+     ol_txrx_vdev_handle vdev,
+@@ -643,10 +645,13 @@ ol_tx_hl_base(
+ {
+     struct ol_txrx_pdev_t *pdev = vdev->pdev;
+     adf_nbuf_t msdu = msdu_list;
++    adf_nbuf_t msdu_drop_list = NULL;
+     struct ol_txrx_msdu_info_t tx_msdu_info;
+     struct ocb_tx_ctrl_hdr_t tx_ctrl;
+ 
+     htt_pdev_handle htt_pdev = pdev->htt_pdev;
++    uint8_t rtap[MAX_RADIOTAP_LEN];
++    uint8_t rtap_len = 0;
+     tx_msdu_info.peer = NULL;
+ 
+     /*
+@@ -657,6 +662,7 @@ ol_tx_hl_base(
+      */
+     while (msdu) {
+         adf_nbuf_t next;
++        adf_nbuf_t prev_drop;
+         struct ol_tx_frms_queue_t *txq;
+         struct ol_tx_desc_t *tx_desc = NULL;
+ 
+@@ -669,6 +675,30 @@ ol_tx_hl_base(
+          */
+         next = adf_nbuf_next(msdu);
+ 
++        /*
++         * copy radiotap header out first.
++         */
++        if (VOS_MONITOR_MODE == vos_get_conparam()) {
++            struct ieee80211_radiotap_header *rthdr;
++            rthdr = (struct ieee80211_radiotap_header *)(adf_nbuf_data(msdu));
++            rtap_len = rthdr->it_len;
++            if (rtap_len > MAX_RADIOTAP_LEN) {
++                TXRX_PRINT(TXRX_PRINT_LEVEL_ERR,
++                           "radiotap length exceeds %d, drop it!\n",
++                           MAX_RADIOTAP_LEN);
++                adf_nbuf_set_next(msdu, NULL);
++                if (!msdu_drop_list)
++                    msdu_drop_list = msdu;
++                else
++                    adf_nbuf_set_next(prev_drop, msdu);
++                prev_drop = msdu;
++                msdu = next;
++                continue;
++            }
++            adf_os_mem_copy(rtap, rthdr, rtap_len);
++            adf_nbuf_pull_head(msdu, rtap_len);
++        }
++
+ #if defined(CONFIG_TX_DESC_HI_PRIO_RESERVE)
+         if (adf_os_atomic_read(&pdev->tx_queue.rsrc_cnt) >
+                                         TXRX_HL_TX_DESC_HI_PRIO_RESERVED) {
+@@ -687,7 +717,11 @@ ol_tx_hl_base(
+              * tx descs for the remaining MSDUs.
+              */
+             TXRX_STATS_MSDU_LIST_INCR(pdev, tx.dropped.host_reject, msdu);
+-            return msdu; /* the list of unaccepted MSDUs */
++            if (!msdu_drop_list)
++                msdu_drop_list = msdu;
++            else
++                adf_nbuf_set_next(prev_drop, msdu);
++            return msdu_drop_list; /* the list of unaccepted MSDUs */
+         }
+ 
+ //        OL_TXRX_PROT_AN_LOG(pdev->prot_an_tx_sent, msdu);
+@@ -798,6 +832,16 @@ ol_tx_hl_base(
+          */
+         htt_tx_desc_display(tx_desc->htt_tx_desc);
+ 
++        /* push radiotap as extra frag */
++        if (VOS_MONITOR_MODE == vos_get_conparam()) {
++            adf_nbuf_frag_push_head(
++                    msdu,
++                    rtap_len,
++                    (uint8_t *)rtap, /* virtual addr */
++                    0, 0 /* phys addr MSBs - n/a */);
++                    adf_nbuf_set_frag_is_wordstream(msdu, 1, 1);
++        }
++
+         ol_tx_enqueue(pdev, txq, tx_desc, &tx_msdu_info);
+         if (tx_msdu_info.peer) {
+             OL_TX_PEER_STATS_UPDATE(tx_msdu_info.peer, msdu);
+@@ -811,7 +855,7 @@ MSDU_LOOP_BOTTOM:
+     if (call_sched == true)
+         ol_tx_sched(pdev);
+ 
+-    return NULL; /* all MSDUs were accepted */
++    return msdu_drop_list; /* all MSDUs were accepted */
+ }
+ 
+ /**
+diff --git a/CORE/HDD/src/wlan_hdd_main.c b/CORE/HDD/src/wlan_hdd_main.c
+index 68142b1..721c797 100644
+--- a/CORE/HDD/src/wlan_hdd_main.c
++++ b/CORE/HDD/src/wlan_hdd_main.c
+@@ -10137,6 +10137,9 @@ static struct net_device_ops wlan_drv_ops = {
+  static struct net_device_ops wlan_mon_drv_ops = {
+       .ndo_open = hdd_mon_open,
+       .ndo_stop = hdd_stop,
++#ifdef CONFIG_HL_SUPPORT
++      .ndo_start_xmit = hdd_hard_start_xmit,
++#endif
+       .ndo_get_stats = hdd_stats,
+ };
+ 
+@@ -11094,11 +11097,14 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
+             goto err_free_netdev;
+          }
+ 
+-         //Stop the Interface TX queue.
+-         hddLog(LOG1, FL("Disabling queues"));
+-         wlan_hdd_netif_queue_control(pAdapter,
+-            WLAN_NETIF_TX_DISABLE_N_CARRIER,
+-            WLAN_CONTROL_PATH);
++         /* do not disable tx in monitor mode */
++         if (VOS_MONITOR_MODE != vos_get_conparam()) {
++             /* Stop the Interface TX queue */
++             hddLog(LOG1, FL("Disabling queues"));
++             wlan_hdd_netif_queue_control(pAdapter,
++                                          WLAN_NETIF_TX_DISABLE_N_CARRIER,
++                                          WLAN_CONTROL_PATH);
++         }
+ 
+ #ifdef QCA_LL_TX_FLOW_CT
+          /* SAT mode default TX Flow control instance
+diff --git a/CORE/HDD/src/wlan_hdd_tx_rx.c b/CORE/HDD/src/wlan_hdd_tx_rx.c
+index 6b927fd..93e6d40 100644
+--- a/CORE/HDD/src/wlan_hdd_tx_rx.c
++++ b/CORE/HDD/src/wlan_hdd_tx_rx.c
+@@ -520,14 +520,20 @@ int __hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
+ #endif
+ #endif
+ 
+-       hdd_get_transmit_sta_id(pAdapter, pDestMacAddress, &STAId);
+-       if (STAId == HDD_WLAN_INVALID_STA_ID) {
+-           hddLog(LOG1, "Invalid station id, transmit operation suspended");
+-           goto drop_pkt;
+-       }
++       /* use self peer directly in monitor mode */
++       if (VOS_MONITOR_MODE != vos_get_conparam()) {
++           hdd_get_transmit_sta_id(pAdapter, pDestMacAddress, &STAId);
++           if (STAId == HDD_WLAN_INVALID_STA_ID) {
++               hddLog(LOG1, "Invalid station id, transmit operation suspended");
++               goto drop_pkt;
++           }
+ 
+-       vdev_temp = tlshim_peer_validity(
+-                     (WLAN_HDD_GET_CTX(pAdapter))->pvosContext, STAId);
++           vdev_temp = tlshim_peer_validity(
++                   (WLAN_HDD_GET_CTX(pAdapter))->pvosContext, STAId);
++       } else {
++           vdev_temp =
++               tlshim_selfpeer_vdev((WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
++       }
+        if (!vdev_temp)
+            goto drop_pkt;
+ 
+diff --git a/CORE/SERVICES/COMMON/_ieee80211_common.h b/CORE/SERVICES/COMMON/_ieee80211_common.h
+index f4a9294..a1df397 100644
+--- a/CORE/SERVICES/COMMON/_ieee80211_common.h
++++ b/CORE/SERVICES/COMMON/_ieee80211_common.h
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2013-2014 The Linux Foundation. All rights reserved.
++ * Copyright (c) 2013-2014, 2016 The Linux Foundation. All rights reserved.
+  *
+  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+  *
+@@ -548,4 +548,21 @@ struct ieee80211_chanutil_info {
+     u_int8_t     beacon_intervals;
+ };
+ 
++/**
++ * struct ieee80211_radiotap_header - radio tap header
++ * @it_version: version 0
++ * @it_pad:     padding
++ * @it_len:     length of the whole header in bytes
++ * @it_present: bitmap telling which fields are present
++ *
++ * This struct is used to indicate rx status in monitor mode
++ * and carry tx parameters in packet injection.
++ */
++struct ieee80211_radiotap_header {
++	u_int8_t it_version;
++	u_int8_t it_pad;
++	u_int16_t it_len;
++	u_int32_t it_present;
++} __packed;
++
+ #endif /* _COMMON__IEEE80211_H_ */
+diff --git a/CORE/TL/inc/wlan_qct_tl.h b/CORE/TL/inc/wlan_qct_tl.h
+index 23e62f0..51cb7c1 100644
+--- a/CORE/TL/inc/wlan_qct_tl.h
++++ b/CORE/TL/inc/wlan_qct_tl.h
+@@ -644,6 +644,14 @@ typedef struct
+ 
+ void *tlshim_peer_validity(void *vos_ctx, uint8_t sta_id);
+ 
++/**
++ * tlshim_selfpeer_vdev() - get vdev of self peer
++ * @vos_ctx		vos context
++ *
++ * Return: on success return vdev, NULL when self peer is invalid/NULL
++ */
++void *tlshim_selfpeer_vdev(void *vos_ctx);
++
+ /*==========================================================================
+ 
+   FUNCTION    WLANTL_Open
+-- 
+cgit v1.1
