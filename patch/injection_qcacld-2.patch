@@ -177,8 +177,7 @@ index da494eb935..1c92d37d2f 100644
 @@ -4244,11 +4244,15 @@ static const struct net_device_ops wlan_drv_ops = {
  #endif
  };
- 
-+
+
  #ifdef FEATURE_MONITOR_MODE_SUPPORT
  /* Monitor mode net_device_ops, doesnot Tx and most of operations. */
  static const struct net_device_ops wlan_mon_drv_ops = {
