@@ -454,10 +454,10 @@ index 30bba71..c184a33 100644
  	return rtap_len;
  }
  
-diff --git a/CORE/SERVICES/COMMON/ol_txrx_htt_api.h b/CORE/SERVICES/COMMON/ol_txrx_htt_api.h
+diff --git a/core/dp/ol/inc/ol_txrx_htt_api.h b/core/dp/ol/inc/ol_txrx_htt_api.h
 index 0aa85ce..d72dacc 100644
---- a/CORE/SERVICES/COMMON/ol_txrx_htt_api.h
-+++ b/CORE/SERVICES/COMMON/ol_txrx_htt_api.h
+--- a/core/dp/ol/inc/ol_txrx_htt_api.h
++++ b/core/dp/ol/inc/ol_txrx_htt_api.h
 @@ -357,6 +357,44 @@ ol_rx_indication_handler(
      int num_mpdu_ranges);
  
