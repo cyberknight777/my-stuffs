@@ -1,6 +1,7 @@
 #!/usr/bin/bash
 # Author: kNIGHT
 # Co-Author: ABHackerOfficial
+# thanks to mochi for the original idea 
 
 ver8188eus=v5.3.9
 ver8812=v5.6.4.2
@@ -52,4 +53,15 @@ if [[ $1 != "" && $1 == "add" ]]; then
     gsa
 elif [[ $1 != "" && $1 == "pull" ]]; then
     gsp
+elif [[ $1 == "" ]]; then
+    echo -e "\033[1m
+usage: ./drivers.sh [arg]
+
+example: ./drivers.sh add
+example: ./drivers.sh pull
+
+     add   Newly add drivers
+     pull  Update added drivers
+\033[1m"
+    exit 1
 fi
