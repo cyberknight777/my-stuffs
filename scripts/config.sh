@@ -2,7 +2,7 @@
 #Kali NetHunter Kernel Config Checker
 #from config.gz(result may not reliable) or from kernel defconfig
 #Heavily Based On: https://github.com/moby/moby/blob/master/contrib/check-config.sh
-#Maintained by: 0x300T(//BootLOop)
+#Maintained by: 0x300T(//BootLOop) & Knight
 
 set -e
 
@@ -157,7 +157,7 @@ check_flags BUILD_ARM64_APPENDED_DTB_IMAGE IMG_GZ_DTB
 echo
 
 echo $(wrap_color "BLUETOOTH:" "36")
-check_flags BT BT_RFCOMM BT_RFCOMM_TTY BT_HCIBTUSB BT_HCIBTUSB_BCM BT_HCIBTUSB_RTL BT_HCIUART BT_HCIBCM203X BT_HCIBPA10X BT_HCIBFUSB
+check_flags BT BT_RFCOMM BT_RFCOMM_TTY BT_HCIBTUSB BT_HCIBTUSB_BCM BT_HCIBTUSB_RTL BT_HCIUART BT_HCIBCM203X BT_HCIBPA10X BT_HCIBFUSB BT_HCIVHCI
 echo
 
 echo $(wrap_color "MAC80211:" "36")
