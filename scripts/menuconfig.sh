@@ -15,6 +15,6 @@ echo "#"
 echo "# [1/1]: Menuconfig"
 echo "#"
 
-make O=../compiled_code_codename $CONFIG;
-make O=../compiled_code_codename menuconfig;
+make O=../compiled_code_codename $CONFIG
+make O=../compiled_code_codename menuconfig
 cp -rf ../compiled_code_codename/.config arch/arm64/configs/$CONFIG

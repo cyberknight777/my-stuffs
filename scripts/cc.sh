@@ -24,8 +24,8 @@ echo "#"
 
 START=$(date +"%s")
 
-make O=../compiled_code_codename CC=clang $CONFIG; 
-make O=../compiled_code_codename CC=clang;
+make O=../compiled_code_codename CC=clang $CONFIG
+make O=../compiled_code_codename CC=clang
 
 # Build anykernel3.zip
 echo "#"
@@ -49,4 +49,3 @@ exit 0
 #make O=../compiled_code_codename CC=clang modules_install INSTALL_MOD_PATH=../compiled_modules_codename;
 
 #make O=../compiled_code_codename CC=clang modules INSTALL_MOD_PATH=../compiled_modules_codename
-
