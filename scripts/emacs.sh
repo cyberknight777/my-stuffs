@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-echo -ne "\033[1;36mEnter version of emacs you would like to install \033[0m"
+echo -ne "\033[1;36mEnter version of emacs you would like to install(leave it empty to grab latest version): \033[0m"
 read -r version
 
 [ -z $version ] && version=27.2
