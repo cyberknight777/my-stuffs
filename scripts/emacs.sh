@@ -3,6 +3,8 @@
 echo -ne "\033[1;36mEnter version of emacs you would like to install \033[0m"
 read -r version
 
+[ -z $version ] && version=27.2
+
 mkdir -p emacs-build
 cd emacs-build
 
