@@ -4,8 +4,6 @@
 export CONFIG=dragonheart_defconfig
 CURRENTDIR=$(pwd)
 export CURRENTDIR
-KBUILD_COMPILER_STRING=$(gcc64/bin/aarch64-elf-gcc --version | head -n 1)
-export KBUILD_COMPILER_STRING
 export LINKER="ld.lld"
 export DEVICE="OnePlus 7 Series"
 export CODENAME="op7"
@@ -28,6 +26,8 @@ if [[ "${COMPILER}" = gcc ]]; then
 		unzip 32.zip
 		mv gcc-arm-c8b46a6ab60d998b5efa1d5fb6aa34af35a95bad gcc32
 	fi
+	KBUILD_COMPILER_STRING=$(gcc64/bin/aarch64-elf-gcc --version | head -n 1)
+	export KBUILD_COMPILER_STRING
 	export PATH=$CURRENTDIR/gcc32/bin:$CURRENTDIR/gcc64/bin:/usr/bin/:${PATH}
 	MAKE+=(
 		ARCH=arm64
@@ -46,6 +46,8 @@ elif [[ "${COMPILER}" = clang ]]; then
 		unzip master.zip
 		mv proton-clang-master proton-clang
 	fi
+	KBUILD_COMPILER_STRING=$(proton-clang/bin/clang -v 2>&1 | head -n 1 | sed 's/(https..*//' | sed 's/ version//')
+	export KBUILD_COMPILER_STRING
 	export PATH=$CURRENTDIR/proton-clang/bin/:/usr/bin/:${PATH}
 	MAKE+=(
 		ARCH=arm64
