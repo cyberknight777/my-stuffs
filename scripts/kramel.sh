@@ -165,7 +165,7 @@ mkzip() {
 	mv out/arch/arm64/boot/dtb.img anykernel3-dragonheart
 	mv out/arch/arm64/boot/Image anykernel3-dragonheart
 	cd anykernel3-dragonheart || exit 1
-	zip -r9 "$zipn".zip ./*
+	zip -r9 "$zipn".zip . -x ".git*" -x "README.md" -x "LICENSE" -x "*.zip"
 	echo -e "\n\e[1;32m[✓] Built zip! \e[0m" | pv -qL 30
 	tgs "${zipn}.zip" "*#${kver} ${KBUILD_COMPILER_STRING}*"
 }
