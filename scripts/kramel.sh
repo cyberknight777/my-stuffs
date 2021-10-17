@@ -86,7 +86,7 @@ trap exit_on_signal_SIGINT SIGINT
 
 tg() {
 	if [[ "${SILENT}" != "1" ]]; then
-		curl -sX POST https://api.telegram.org/bot"${TOKEN}"/sendMessage -d chat_id="${CHATID}" -d parse_mode=MarkdownV2 -d disable_web_page_preview=true -d text="$1" &>/dev/null
+		curl -sX POST https://api.telegram.org/bot"${TOKEN}"/sendMessage -d chat_id="${CHATID}" -d parse_mode=Markdown -d disable_web_page_preview=true -d text="$1" &>/dev/null
 	fi
 }
 
@@ -101,7 +101,7 @@ tgs() {
 }
 
 clean() {
-	echo -e "\e[1;93m[*] Cleaning source and out/ directory! \e[0m" | pv -qL 30
+	echo -e "\n\e[1;93m[*] Cleaning source and out/ directory! \e[0m" | pv -qL 30
 	make clean && make mrproper && rm -rf out
 }
 
@@ -110,8 +110,7 @@ mcfg() {
 	make "${MAKE[@]}" $CONFIG | tee log.txt
 	make "${MAKE[@]}" menuconfig
 	cp -rf "${CURRENTDIR}"/out/.config "${CURRENTDIR}"/arch/arm64/configs/$CONFIG
-	DIFF=$((BUILD_END - BUILD_START))
-	echo -e "\e[1;32m[✓] Saved Modifications! \e[0m" | pv -qL 30
+	echo -e "\n\e[1;32m[✓] Saved Modifications! \e[0m" | pv -qL 30
 }
 img() {
 	tg "
@@ -128,7 +127,7 @@ img() {
 *Last Commit*: [${COMMIT_HASH}](${REPO_URL}/commit/${COMMIT_HASH})
 "
 
-	echo -e "\e[1;93m[*] Building Kernel! \e[0m" | pv -qL 30
+	echo -e "\n\e[1;93m[*] Building Kernel! \e[0m" | pv -qL 30
 	BUILD_START=$(date +"%s")
 	make "${MAKE[@]}" $CONFIG
 	time make -j"$PROCS" "${MAKE[@]}" Image dtbo.img dtb.img | tee log.txt
@@ -136,38 +135,38 @@ img() {
 	DIFF=$((BUILD_END - BUILD_START))
 	if [ -f "out/arch/arm64/boot/Image" ]; then
 		tg "*Kernel Built after $((DIFF / 60)) minute(s) and $((DIFF % 60)) second(s)*"
-		echo -e "\e[1;32m[✓] Built Kernel! \e[0m" | pv -qL 30
+		echo -e "\n\e[1;32m[✓] Built Kernel! \e[0m" | pv -qL 30
 	else
 		tgs "log.txt" "*Build failed*"
-		echo -e "\e[1;32m[✗] Build Failed! \e[0m"
+		echo -e "\n\e[1;32m[✗] Build Failed! \e[0m"
 		exit 1
 	fi
 }
 dtb() {
-	echo -e "\e[1;32m[*] Building DTBS! \e[0m" | pv -qL 30
+	echo -e "\n\e[1;32m[*] Building DTBS! \e[0m" | pv -qL 30
 	make "${MAKE[@]}" $CONFIG
 	time make -j"$PROCS" "${MAKE[@]}" dtbs dtbo.img dtb.img
-	echo -e "\e[1;32m[✓] Built DTBS! \e[0m" | pv -qL 30
+	echo -e "\n\e[1;32m[✓] Built DTBS! \e[0m" | pv -qL 30
 }
 mod() {
 	tg "*Building Modules!*"
-	echo -e "\e[1;32m[*] Building Modules! \e[0m" | pv -qL 30
+	echo -e "\n\e[1;32m[*] Building Modules! \e[0m" | pv -qL 30
 	mkdir -p out/modules
 	make "${MAKE[@]}" modules_prepare
 	make -j"$PROCS" "${MAKE[@]}" modules INSTALL_MOD_PATH="${CURRENTDIR}"/out/modules
 	make "${MAKE[@]}" modules_install INSTALL_MOD_PATH="${CURRENTDIR}"/out/modules
 	find out/modules -type f -iname '*.ko' -exec cp {} anykernel3-dragonheart/modules/system/lib/modules/ \;
-	echo -e "\e[1;32m[✓] Built Modules! \e[0m" | pv -qL 30
+	echo -e "\n\e[1;32m[✓] Built Modules! \e[0m" | pv -qL 30
 }
-zip() {
+mkzip() {
 	tg "*Building zip!*"
-	echo -e "\e[1;32m[*] Building zip! \e[0m" | pv -qL 30
+	echo -e "\n\e[1;32m[*] Building zip! \e[0m" | pv -qL 30
 	mv out/arch/arm64/boot/dtbo.img anykernel3-dragonheart
 	mv out/arch/arm64/boot/dtb.img anykernel3-dragonheart
 	mv out/arch/arm64/boot/Image anykernel3-dragonheart
 	cd anykernel3-dragonheart || exit 1
 	zip -r9 "$zipn".zip ./*
-	echo -e "\e[1;32m[✓] Built zip! \e[0m" | pv -qL 30
+	echo -e "\n\e[1;32m[✓] Built zip! \e[0m" | pv -qL 30
 	tgs "${zipn}.zip" "*#${kver} ${KBUILD_COMPILER_STRING}*"
 }
 
@@ -177,13 +176,13 @@ usage: kver=<version number> zipn=<zip name> ./build.sh <arg>
 
 example: kver=69 zipn=Kernel-Beta ./build.sh mcfg
 example: kver=420 zipn=Kernel-Beta ./build.sh mcfg img
-example: kver=69420 zipn=Kernel-Beta ./build.sh mcfg img zip
+example: kver=69420 zipn=Kernel-Beta ./build.sh mcfg img mkzip
 
 	 mcfg Runs make menuconfig
 	 img  Builds Kernel
 	 dtb  Builds dtb(o).img
 	 mod  Builds out-of-tree modules
-	 zip  Builds anykernel3 zip
+	 mkzip  Builds anykernel3 zip
 \e[0m"
 }
 
@@ -206,8 +205,8 @@ for arg in "$@"; do
 	"mod")
 		mod
 		;;
-	"zip")
-		zip
+	"mkzip")
+		mkzip
 		;;
 	"help")
 		helpmenu
