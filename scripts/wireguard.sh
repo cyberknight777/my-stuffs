@@ -12,9 +12,9 @@ if [ -d "${path}/drivers/net/wireguard" ]; then
 fi
 wget https://git.zx2c4.com/wireguard-linux-compat/snapshot/wireguard-linux-compat-"${ver}".zip
 unzip wireguard-linux-compat-"${ver}".zip -d wireguard
-cp -r wireguard/src/* "${path}"/net/wireguard
+cp -r wireguard/*/src/* "${path}"/net/wireguard
 cd "${path}" || exit 1
 git add net/wireguard/*
-git commit -m "Merged latest wireguard v${ver}"
+git commit -S -s -m "wireguard: Update to ${ver}"
 cd "${DIR}" || exit 1
-echo -e "\n\033[1;36m Done! Merged latest wireguard v${ver} \033[0m"
+echo -e "\n\033[1;36m Done! Merged latest wireguard ${ver} \033[0m"
