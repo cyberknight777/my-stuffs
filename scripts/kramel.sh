@@ -170,19 +170,27 @@ mkzip() {
 	tgs "${zipn}.zip" "*#${kver} ${KBUILD_COMPILER_STRING}*"
 }
 
+obj() {
+	make "${MAKE[@]}" $CONFIG
+        time make -j"$PROCS" "${MAKE[@]}" "$1"
+}
+
 helpmenu() {
 	echo -e "\e[1m
-usage: kver=<version number> zipn=<zip name> ./build.sh <arg>
+usage: kver=<version number> zipn=<zip name> ./kramel.sh <arg>
 
-example: kver=69 zipn=Kernel-Beta ./build.sh mcfg
-example: kver=420 zipn=Kernel-Beta ./build.sh mcfg img
-example: kver=69420 zipn=Kernel-Beta ./build.sh mcfg img mkzip
+example: kver=69 zipn=Kernel-Beta ./kramel.sh mcfg
+example: kver=420 zipn=Kernel-Beta ./kramel.sh mcfg img
+example: kver=69420 zipn=Kernel-Beta ./kramel.sh mcfg img mkzip
+example: kver=1 zipn=Kernel-Beta ./kramel.sh --obj=drivers/android/binder.o
+example: kver=2 zipn=Kernel-Beta ./kramel.sh --obj=kernel/sched/
 
-	 mcfg Runs make menuconfig
-	 img  Builds Kernel
-	 dtb  Builds dtb(o).img
-	 mod  Builds out-of-tree modules
+	 mcfg   Runs make menuconfig
+	 img    Builds Kernel
+	 dtb    Builds dtb(o).img
+	 mod    Builds out-of-tree modules
 	 mkzip  Builds anykernel3 zip
+	 --obj    Builds specific driver/subsystem
 \e[0m"
 }
 
@@ -208,6 +216,16 @@ for arg in "$@"; do
 	"mkzip")
 		mkzip
 		;;
+	"--obj="*)
+        ABC="${arg#*=}"
+        if [[ -z "$ABC" ]]
+        then
+            echo "Use --obj=something"
+            exit 1
+        fi
+                obj "$ABC"
+		;;
+
 	"help")
 		helpmenu
 		exit 1
