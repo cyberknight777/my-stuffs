@@ -7,6 +7,7 @@ export KDIR
 export LINKER="ld.lld"
 export DEVICE="OnePlus 7 Series"
 export CODENAME="op7"
+export BUILDER="cyberknight777"
 export REPO_URL="https://github.com/cyberknight777/dragonheart_kernel_oneplus_sm8150"
 COMMIT_HASH=$(git rev-parse --short HEAD)
 export COMMIT_HASH
@@ -78,6 +79,7 @@ if [ "${ci}" != 1 ];then
 else
     export KBUILD_BUILD_VERSION=$DRONE_BUILD_NUMBER
     export KBUILD_BUILD_HOST=$DRONE_SYSTEM_HOST
+    export KBUILD_BUILD_USER=$BUILDER
     export VERSION=$version
     kver=$KBUILD_BUILD_VERSION
     zipn=DragonHeart-op7-${VERSION}
@@ -124,7 +126,7 @@ mcfg() {
 img() {
 	tg "
 *Build Number*: \`${kver}\`
-*Builder*: \`$(whoami)\`
+*Builder*: \`${BUILDER}\`
 *Device*: \`${DEVICE} [${CODENAME}]\`
 *Kernel Version*: \`$(make kernelversion 2>/dev/null)\`
 *Date*: \`$(date)\`
