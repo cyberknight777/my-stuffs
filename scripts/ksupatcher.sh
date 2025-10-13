@@ -94,7 +94,7 @@ elif [[ ${MODE} == "ota" ]]; then
 	fi
 
 	if ! command -v su >/dev/null 2>&1; then
-		echo -e "\e[1;31mOTA option requires you to be rooted with KernelSU / KernelSU-Next prior! \e[0m"
+		echo -e "\e[1;31mOTA option is only usable when you are rooted with KernelSU / KernelSU-Next and have provided superuser access to shell!\e[0m"
 		exit 1
 	fi
 
