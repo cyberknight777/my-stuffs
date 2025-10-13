@@ -34,7 +34,7 @@ patch() {
 		./ksud boot-patch -b /sdcard/boot.img --kmi android12-5.10 --magiskboot ${WDIR}/work/magiskboot --module ${WDIR}/work/${KSUM} -o /sdcard/Download/ || exit 1
 	else
 		./ksud boot-patch -b /sdcard/boot.img --kmi android12-5.10 --magiskboot ${WDIR}/work/magiskboot --module ${WDIR}/work/${KSUM} || exit 1
-		mv kernelsu_* ksu.img
+		mv kernelsu_*.img ksu.img
 	fi
 }
 
